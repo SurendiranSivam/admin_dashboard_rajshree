@@ -1,17 +1,16 @@
-// Import the SupabaseService from its new location
+// lib/screens/dashboard_screen.dart
 import 'package:admin_dashboard_rajshree/screens/orders_screen.dart';
 import 'package:admin_dashboard_rajshree/screens/products_screen.dart';
+import 'package:admin_dashboard_rajshree/screens/trackship_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:admin_dashboard_rajshree/screens/login_screen.dart';
 import 'package:admin_dashboard_rajshree/services/dashboard_service.dart';
 
-
-
 enum DashboardMenu {
   dashboard,
   orders,
-  products
-//  purchases
+  products,
+  trackship,
 }
 
 class DashboardScreen extends StatefulWidget {
@@ -24,7 +23,8 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   DashboardMenu selectedMenu = DashboardMenu.dashboard;
   final SupabaseService _supabaseService = SupabaseService();
-  DateTime _selectedDate = DateTime.now(); // State variable for the date
+  DateTime _selectedDate = DateTime.now();
+
   Future<void> _pickDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -38,22 +38,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
       });
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text("Dashboard"),
-        foregroundColor: Colors.white,
-        backgroundColor: Theme.of(context).colorScheme.primary,
+        backgroundColor: Colors.deepPurple.shade700,
+        elevation: 3,
+        title: Row(
+          children: [
+            // ✅ Corrected logo path
+            Image.asset(
+              "assets/images/logo.png",
+              height: 32,
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              "Rajshree Admin",
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+          ],
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-              );
+          PopupMenuButton<String>(
+            icon: const CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.white,
+              child: Icon(Icons.person, color: Colors.deepPurple),
+            ),
+            onSelected: (value) {
+              if (value == "logout") {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                );
+              }
             },
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: "profile", child: Text("Profile")),
+              const PopupMenuItem(value: "settings", child: Text("Settings")),
+              const PopupMenuItem(value: "logout", child: Text("Logout")),
+            ],
           ),
         ],
       ),
@@ -66,39 +92,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Sidebar menu
+  /// Sidebar
   Widget _buildSideMenu() {
     return Container(
       width: 220,
-      color: Colors.grey[200],
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.deepPurple.shade800, Colors.deepPurple.shade600],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
       child: ListView(
         children: [
-          ListTile(
-            selected: selectedMenu == DashboardMenu.dashboard,
-            leading: const Icon(Icons.dashboard),
-            title: const Text("Dashboard"),
-            onTap: () => setState(() => selectedMenu = DashboardMenu.dashboard),
-          ),
-          ListTile(
-            selected: selectedMenu == DashboardMenu.orders,
-            leading: const Icon(Icons.shopping_cart),
-            title: const Text("Orders"),
-            onTap: () => setState(() => selectedMenu = DashboardMenu.orders),
-          ),
-          ListTile(
-            selected: selectedMenu == DashboardMenu.products,
-            leading: const Icon(Icons.store),
-            title: const Text("Products"),
-            onTap: () => setState(() => selectedMenu = DashboardMenu.products),
-          ),
-          // ListTile(
-          //   selected: selectedMenu == DashboardMenu.purchases,
-          //   leading: const Icon(Icons.receipt),
-          //   title: const Text("Purchases"),
-          //   onTap: () => setState(() => selectedMenu = DashboardMenu.purchases),
-          // )
+          _buildMenuItem(DashboardMenu.dashboard, Icons.dashboard, "Dashboard"),
+          _buildMenuItem(DashboardMenu.orders, Icons.shopping_cart, "Orders"),
+          _buildMenuItem(DashboardMenu.products, Icons.store, "Products"),
+          _buildMenuItem(
+              DashboardMenu.trackship, Icons.local_shipping, "Trackship"),
         ],
       ),
+    );
+  }
+
+  Widget _buildMenuItem(DashboardMenu menu, IconData icon, String title) {
+    final isSelected = selectedMenu == menu;
+    return ListTile(
+      selected: isSelected,
+      leading: Icon(icon, color: isSelected ? Colors.white : Colors.white70),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: isSelected ? Colors.white : Colors.white70,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      tileColor: isSelected ? Colors.deepPurple.shade400 : null,
+      onTap: () => setState(() => selectedMenu = menu),
     );
   }
 
@@ -111,12 +141,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return const OrdersScreen();
       case DashboardMenu.products:
         return const ProductsScreen();
-    // case DashboardMenu.purchases:
-    //   return const PurchaseScreen();
+      case DashboardMenu.trackship:
+        return const TrackshipScreen();
     }
   }
 
-  /// Full dashboard content with cards
+  /// Dashboard Overview Content
   Widget _buildDashboardContent() {
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= 1000;
@@ -135,11 +165,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Text(
-                  "Data for: ${_selectedDate.toLocal().toString().split(' ')[0]}",
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                // ✅ Fix overflow using Expanded
+                Expanded(
+                  child: Text(
+                    "Data for: ${_selectedDate.toLocal().toString().split(' ')[0]}",
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                const SizedBox(width: 8),
                 IconButton(
                   icon: const Icon(Icons.calendar_today),
                   onPressed: () => _pickDate(context),
@@ -174,23 +208,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         crossAxisCount: cols,
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
-                        mainAxisExtent: 110,
+                        mainAxisExtent: 120,
                       ),
                       children: [
                         _SummaryCard(
                           title: "Sales (Today)",
                           value: "₹$totalSales",
                           color: Colors.blue,
+                          icon: Icons.currency_rupee,
                         ),
                         _SummaryCard(
                           title: "Orders (Today)",
                           value: orderCount,
                           color: Colors.green,
+                          icon: Icons.shopping_bag,
                         ),
                         const _SummaryCard(
-                            title: "Customers", value: "0", color: Colors.orange),
+                          title: "Customers",
+                          value: "0",
+                          color: Colors.orange,
+                          icon: Icons.people,
+                        ),
                         const _SummaryCard(
-                            title: "Products", value: "0", color: Colors.purple),
+                          title: "Products",
+                          value: "0",
+                          color: Colors.purple,
+                          icon: Icons.inventory,
+                        ),
                       ],
                     );
                   },
@@ -209,32 +253,47 @@ class _SummaryCard extends StatelessWidget {
   final String title;
   final String value;
   final Color color;
+  final IconData icon;
 
   const _SummaryCard({
     required this.title,
     required this.value,
     required this.color,
+    required this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: color.withOpacity(0.1),
-      elevation: 2,
+      color: color.withOpacity(0.15),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Text(title, style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: color,
+            CircleAvatar(
+              backgroundColor: color.withOpacity(0.25),
+              child: Icon(icon, color: color),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: TextStyle(fontSize: 16, color: color),
+                      overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -243,7 +302,3 @@ class _SummaryCard extends StatelessWidget {
     );
   }
 }
-
-
-
-yuyuf
